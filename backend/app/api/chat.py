@@ -21,6 +21,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/test")
+async def test_endpoint():
+    """Test endpoint to verify API is working"""
+    try:
+        from ..core.llm import get_llm_client
+        llm = get_llm_client()
+        return {
+            "status": "ok",
+            "llm_type": type(llm).__name__,
+            "message": "Chat API is working"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
 # Temporary in-memory storage for messages
 _messages_store: Dict[str, List[Any]] = {}
 
@@ -147,10 +165,14 @@ async def send_message(
         )
         
         # Process with agent
-        result = agent.process_message(
-            session_id=request.session_id,
-            user_message=request.message
-        )
+        try:
+            result = agent.process_message(
+                session_id=request.session_id,
+                user_message=request.message
+            )
+        except Exception as agent_error:
+            logger.error(f"Agent processing failed: {agent_error}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Agent error: {str(agent_error)}")
         
         # Save AI response
         ai_msg_id = f"msg_{uuid.uuid4().hex[:16]}"

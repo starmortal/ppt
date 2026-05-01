@@ -1,13 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Layout, Input, Button, List, Avatar, Upload, message, Dropdown } from 'antd'
+import { Layout, Input, Button, List, Avatar, Upload, message } from 'antd'
 import { 
   SendOutlined, 
   PlusOutlined, 
   PaperClipOutlined,
-  UserOutlined,
-  SettingOutlined,
-  DeleteOutlined,
-  MoreOutlined
+  UserOutlined
 } from '@ant-design/icons'
 import { sessionAPI, chatAPI, fileAPI } from '../services/api'
 import './ChatPage.css'
@@ -37,7 +34,6 @@ const ChatPage = () => {
   const [showWelcome, setShowWelcome] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Auto scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -46,7 +42,6 @@ const ChatPage = () => {
     scrollToBottom()
   }, [messages])
 
-  // Initialize session on mount
   useEffect(() => {
     initSession()
   }, [])
@@ -56,7 +51,6 @@ const ChatPage = () => {
       const response = await sessionAPI.create('user_default')
       setSessionId(response.session_id)
       
-      // Add to sessions list
       setSessions([{
         id: response.session_id,
         title: '新建对话',
@@ -76,7 +70,6 @@ const ChatPage = () => {
       setMessages([])
       setShowWelcome(true)
       
-      // Add to sessions list
       const newSession = {
         id: response.session_id,
         title: '新建对话',
@@ -98,7 +91,6 @@ const ChatPage = () => {
     setShowWelcome(false)
     setLoading(true)
 
-    // Add user message to UI
     const userMsg: Message = {
       id: 'temp_' + Date.now(),
       role: 'user',
@@ -110,7 +102,6 @@ const ChatPage = () => {
     try {
       const response = await chatAPI.sendMessage(sessionId, userMessage)
       
-      // Add AI response
       const aiMsg: Message = {
         id: response.message_id,
         role: 'assistant',
@@ -119,7 +110,6 @@ const ChatPage = () => {
       }
       setMessages(prev => [...prev, aiMsg])
 
-      // Update session in list
       setSessions(prev => prev.map(s => 
         s.id === sessionId 
           ? { ...s, lastMessage: userMessage, timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }
@@ -146,7 +136,6 @@ const ChatPage = () => {
       
       message.success('文件上传成功')
       
-      // Add system message
       setMessages(prev => [...prev, {
         id: 'system_' + Date.now(),
         role: 'system',
@@ -173,153 +162,191 @@ const ChatPage = () => {
   }
 
   return (
-    <Layout className="chat-page">
-      {/* Left Sidebar */}
-      <Sider width={280} className="chat-sidebar">
-        <div className="sidebar-header">
-          <div className="app-title">PPT Agent</div>
+    <Layout style={{ height: '100vh' }}>
+      {/* 左侧灰色侧边栏 */}
+      <Sider width={280} style={{ background: '#f5f5f5' }}>
+        <div style={{ padding: '20px 16px', borderBottom: '1px solid #e8e8e8' }}>
+          <div style={{ fontSize: '18px', fontWeight: 600, color: '#262626', marginBottom: '16px' }}>
+            PPT Agent
+          </div>
           <Button 
-            type="text" 
-            icon={<SettingOutlined />} 
-            className="settings-btn"
-          />
+            type="default" 
+            icon={<PlusOutlined />} 
+            onClick={handleNewChat}
+            block
+            style={{ height: '40px', borderRadius: '8px' }}
+          >
+            新建会话
+          </Button>
         </div>
 
-        <Button 
-          type="default" 
-          icon={<PlusOutlined />} 
-          className="new-chat-btn"
-          onClick={handleNewChat}
-          block
-        >
-          新建会话
-        </Button>
-
-        <div className="sessions-section">
-          <div className="section-title">聊天记录</div>
+        <div style={{ padding: '16px', overflowY: 'auto', height: 'calc(100vh - 120px)' }}>
+          <div style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: '8px' }}>聊天记录</div>
           <List
-            className="sessions-list"
             dataSource={sessions}
             renderItem={(session) => (
-              <List.Item
-                className={`session-item ${session.id === sessionId ? 'active' : ''}`}
+              <div
+                key={session.id}
                 onClick={() => {
                   setSessionId(session.id)
                   setShowWelcome(false)
                 }}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  marginBottom: '4px',
+                  background: session.id === sessionId ? '#ffffff' : 'transparent',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (session.id !== sessionId) {
+                    e.currentTarget.style.background = '#e6e6e6'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (session.id !== sessionId) {
+                    e.currentTarget.style.background = 'transparent'
+                  }
+                }}
               >
-                <div className="session-content">
-                  <div className="session-title">{session.title}</div>
-                  {session.lastMessage && (
-                    <div className="session-preview">{session.lastMessage}</div>
-                  )}
+                <div style={{ fontSize: '14px', fontWeight: 500, color: '#262626', marginBottom: '4px' }}>
+                  {session.title}
                 </div>
-                <div className="session-meta">
-                  <span className="session-time">{session.timestamp}</span>
-                  <Dropdown
-                    menu={{
-                      items: [
-                        {
-                          key: 'delete',
-                          label: '删除',
-                          icon: <DeleteOutlined />,
-                          danger: true,
-                        },
-                      ],
-                    }}
-                    trigger={['click']}
-                  >
-                    <Button 
-                      type="text" 
-                      size="small" 
-                      icon={<MoreOutlined />}
-                      className="session-more-btn"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </Dropdown>
-                </div>
-              </List.Item>
+                {session.lastMessage && (
+                  <div style={{ fontSize: '12px', color: '#8c8c8c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {session.lastMessage}
+                  </div>
+                )}
+              </div>
             )}
           />
         </div>
       </Sider>
 
-      {/* Main Content */}
-      <Layout className="chat-main">
-        <Content className="chat-content">
-          {/* Top Bar */}
-          <div className="top-bar">
-            <div className="top-bar-left"></div>
-            <div className="top-bar-right">
-              <Button type="default" className="auth-btn">
-                登录 / 注册
-              </Button>
-            </div>
+      {/* 右侧白色主区域 */}
+      <Layout style={{ background: '#ffffff' }}>
+        <Content style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          {/* 顶部登录按钮 */}
+          <div style={{ 
+            height: '60px', 
+            padding: '0 32px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'flex-end',
+            borderBottom: '1px solid #f0f0f0'
+          }}>
+            <Button 
+              style={{ 
+                height: '36px', 
+                padding: '0 20px', 
+                borderRadius: '18px',
+                background: '#262626',
+                color: '#ffffff',
+                border: 'none'
+              }}
+            >
+              登录 / 注册
+            </Button>
           </div>
 
-          {/* Messages or Welcome */}
-          <div className="messages-container">
+          {/* 消息区域 */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
             {showWelcome && messages.length === 0 ? (
-              <div className="welcome-screen">
-                <h1 className="welcome-title">
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                height: '100%',
+                maxWidth: '800px',
+                margin: '0 auto'
+              }}>
+                <h1 style={{ fontSize: '48px', fontWeight: 600, color: '#262626', textAlign: 'center', marginBottom: '16px' }}>
                   {getGreeting()}，<br />
                   有什么PPT需要我做吗？
                 </h1>
-                <p className="welcome-subtitle">AI生成精美PPT，可编辑的PPT</p>
+                <p style={{ fontSize: '16px', color: '#8c8c8c', textAlign: 'center', marginBottom: '48px' }}>
+                  AI生成精美PPT，可编辑的PPT
+                </p>
                 
-                <div className="quick-actions">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', width: '100%', maxWidth: '600px' }}>
                   <Button 
-                    className="quick-action-btn"
                     onClick={() => handleQuickAction('帮我做一个产品介绍PPT')}
+                    style={{ height: '48px', borderRadius: '8px', border: '1px solid #e8e8e8', background: '#fafafa' }}
                   >
                     产品介绍PPT
                   </Button>
                   <Button 
-                    className="quick-action-btn"
                     onClick={() => handleQuickAction('北京5月份8天旅游攻略')}
+                    style={{ height: '48px', borderRadius: '8px', border: '1px solid #e8e8e8', background: '#fafafa' }}
                   >
                     旅游攻略PPT
                   </Button>
                   <Button 
-                    className="quick-action-btn"
                     onClick={() => handleQuickAction('公司年度总结报告')}
+                    style={{ height: '48px', borderRadius: '8px', border: '1px solid #e8e8e8', background: '#fafafa' }}
                   >
                     年度总结报告
                   </Button>
                   <Button 
-                    className="quick-action-btn"
                     onClick={() => handleQuickAction('市场调研分析报告')}
+                    style={{ height: '48px', borderRadius: '8px', border: '1px solid #e8e8e8', background: '#fafafa' }}
                   >
                     市场调研报告
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="messages-list">
+              <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
                 {messages.map((msg) => (
-                  <div key={msg.id} className={`message-item ${msg.role}`}>
-                    {msg.role === 'assistant' && (
-                      <Avatar size={32} className="message-avatar ai-avatar">
-                        AI
-                      </Avatar>
-                    )}
-                    <div className="message-content">
-                      <div className="message-text">{msg.content}</div>
+                  <div 
+                    key={msg.id} 
+                    style={{ 
+                      display: 'flex', 
+                      gap: '12px', 
+                      marginBottom: '24px',
+                      flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
+                    }}
+                  >
+                    <Avatar 
+                      size={32} 
+                      style={{ 
+                        flexShrink: 0,
+                        background: msg.role === 'user' ? '#1890ff' : '#52c41a',
+                        marginTop: '4px'
+                      }}
+                      icon={msg.role === 'user' ? <UserOutlined /> : null}
+                    >
+                      {msg.role === 'assistant' ? 'AI' : null}
+                    </Avatar>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '15px',
+                        lineHeight: '1.6',
+                        color: '#262626',
+                        wordWrap: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        ...(msg.role === 'user' ? {
+                          background: '#e6f7ff',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          display: 'inline-block',
+                          maxWidth: '100%'
+                        } : {
+                          padding: '4px 0'
+                        })
+                      }}>
+                        {msg.content}
+                      </div>
                     </div>
-                    {msg.role === 'user' && (
-                      <Avatar 
-                        size={32} 
-                        icon={<UserOutlined />}
-                        className="message-avatar user-avatar"
-                      />
-                    )}
                   </div>
                 ))}
                 {loading && (
-                  <div className="message-item assistant">
-                    <Avatar size={32} className="message-avatar ai-avatar">AI</Avatar>
-                    <div className="message-content">
-                      <div className="message-text typing">正在思考...</div>
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                    <Avatar size={32} style={{ background: '#52c41a', marginTop: '4px' }}>AI</Avatar>
+                    <div style={{ padding: '4px 0', color: '#8c8c8c', fontStyle: 'italic' }}>
+                      正在思考...
                     </div>
                   </div>
                 )}
@@ -328,36 +355,48 @@ const ChatPage = () => {
             )}
           </div>
 
-          {/* Input Area */}
-          <div className="input-area">
-            <div className="input-container">
-              <Upload
-                beforeUpload={handleFileUpload}
-                showUploadList={false}
-              >
-                <Button 
-                  type="text" 
-                  icon={<PaperClipOutlined />} 
-                  className="attach-btn"
-                />
+          {/* 输入框 */}
+          <div style={{ padding: '20px 32px 24px', borderTop: '1px solid #f0f0f0' }}>
+            <div style={{ 
+              maxWidth: '900px', 
+              margin: '0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '8px 12px',
+              background: '#ffffff',
+              borderRadius: '24px',
+              border: '1px solid #d9d9d9'
+            }}>
+              <Upload beforeUpload={handleFileUpload} showUploadList={false}>
+                <Button type="text" icon={<PaperClipOutlined />} style={{ color: '#8c8c8c' }} />
               </Upload>
 
               <Input
-                className="message-input"
                 placeholder="描述你的主题..."
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onPressEnter={handleSendMessage}
                 disabled={loading}
+                bordered={false}
+                style={{ flex: 1, fontSize: '15px' }}
               />
 
               <Button
                 type="primary"
                 icon={<SendOutlined />}
-                className="send-btn"
                 onClick={handleSendMessage}
                 loading={loading}
                 disabled={!inputMessage.trim()}
+                style={{ 
+                  height: '36px',
+                  width: '36px',
+                  borderRadius: '18px',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               />
             </div>
           </div>
