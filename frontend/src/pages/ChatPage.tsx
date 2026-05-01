@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { Layout, Input, Button, List, Avatar, Upload, message } from 'antd'
+import { Layout, Input, Button, List, Avatar, Upload, message, Dropdown } from 'antd'
 import { 
   SendOutlined, 
   PlusOutlined, 
   PaperClipOutlined,
   UserOutlined,
-  HistoryOutlined,
-  DeleteOutlined
+  SettingOutlined,
+  DeleteOutlined,
+  MoreOutlined
 } from '@ant-design/icons'
 import { sessionAPI, chatAPI, fileAPI } from '../services/api'
 import './ChatPage.css'
@@ -33,6 +34,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Auto scroll to bottom
@@ -51,78 +53,78 @@ const ChatPage = () => {
 
   const initSession = async () => {
     try {
-      const userId = 'user_' + Math.random().toString(36).substr(2, 9)
-      const session = await sessionAPI.create(userId)
-      setSessionId(session.session_id)
+      const response = await sessionAPI.create('user_default')
+      setSessionId(response.session_id)
       
       // Add to sessions list
-      const newSession: Session = {
-        id: session.session_id,
-        title: '新建会话',
+      setSessions([{
+        id: response.session_id,
+        title: '新建对话',
         lastMessage: '',
-        timestamp: new Date().toISOString()
-      }
-      setSessions([newSession])
+        timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      }])
     } catch (error) {
       message.error('创建会话失败')
       console.error(error)
     }
   }
 
-  const handleNewSession = async () => {
+  const handleNewChat = async () => {
     try {
-      const userId = 'user_' + Math.random().toString(36).substr(2, 9)
-      const session = await sessionAPI.create(userId)
-      setSessionId(session.session_id)
+      const response = await sessionAPI.create('user_default')
+      setSessionId(response.session_id)
       setMessages([])
+      setShowWelcome(true)
       
-      const newSession: Session = {
-        id: session.session_id,
-        title: '新建会话',
+      // Add to sessions list
+      const newSession = {
+        id: response.session_id,
+        title: '新建对话',
         lastMessage: '',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
       }
       setSessions([newSession, ...sessions])
-      message.success('新会话已创建')
     } catch (error) {
-      message.error('创建会话失败')
+      message.error('创建新会话失败')
+      console.error(error)
     }
   }
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !sessionId) return
 
-    const userMessage: Message = {
-      id: 'user_' + Date.now(),
-      role: 'user',
-      content: inputMessage,
-      timestamp: new Date().toISOString()
-    }
-
-    setMessages(prev => [...prev, userMessage])
+    const userMessage = inputMessage.trim()
     setInputMessage('')
+    setShowWelcome(false)
     setLoading(true)
 
+    // Add user message to UI
+    const userMsg: Message = {
+      id: 'temp_' + Date.now(),
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date().toISOString()
+    }
+    setMessages(prev => [...prev, userMsg])
+
     try {
-      const response = await chatAPI.sendMessage(sessionId, inputMessage)
+      const response = await chatAPI.sendMessage(sessionId, userMessage)
       
-      const aiMessage: Message = {
+      // Add AI response
+      const aiMsg: Message = {
         id: response.message_id,
-        role: response.role,
+        role: 'assistant',
         content: response.content,
         timestamp: response.timestamp
       }
+      setMessages(prev => [...prev, aiMsg])
 
-      setMessages(prev => [...prev, aiMessage])
-      
-      // Update session title if first message
-      if (messages.length === 0) {
-        setSessions(prev => prev.map(s => 
-          s.id === sessionId 
-            ? { ...s, title: inputMessage.substring(0, 20) + '...', lastMessage: response.content }
-            : s
-        ))
-      }
+      // Update session in list
+      setSessions(prev => prev.map(s => 
+        s.id === sessionId 
+          ? { ...s, lastMessage: userMessage, timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }
+          : s
+      ))
     } catch (error) {
       message.error('发送消息失败')
       console.error(error)
@@ -159,193 +161,220 @@ const ChatPage = () => {
     return false
   }
 
-  const quickExamples = [
-    'Dify产品介绍',
-    '北京自由行攻略',
-    '白雪公主企业介绍',
-    '汽车行业周报'
-  ]
-
-  const handleQuickExample = (example: string) => {
-    setInputMessage(example)
+  const handleQuickAction = (action: string) => {
+    setInputMessage(action)
   }
 
-  // Empty state (no messages)
-  const renderEmptyState = () => (
-    <div className="empty-state">
-      <div className="welcome-title">
-        <h1>下午好,</h1>
-        <h1>有什么PPT需要我做?</h1>
-      </div>
-      <p className="welcome-subtitle">AI生成制版、可编辑的PPT</p>
-      
-      <div className="quick-examples">
-        {quickExamples.map((example, index) => (
-          <Button
-            key={index}
-            className="example-btn"
-            onClick={() => handleQuickExample(example)}
-          >
-            {example}
-          </Button>
-        ))}
-      </div>
-    </div>
-  )
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return '上午好'
+    if (hour < 18) return '下午好'
+    return '晚上好'
+  }
 
   return (
-    <Layout className="chat-layout">
+    <Layout className="chat-page">
       {/* Left Sidebar */}
-      <Sider width={240} className="chat-sider">
-        <div className="sider-header">
+      <Sider width={280} className="chat-sidebar">
+        <div className="sidebar-header">
           <div className="user-info">
-            <Avatar icon={<UserOutlined />} />
-            <span className="username">SANDUN</span>
+            <Avatar size={40} icon={<UserOutlined />} className="user-avatar" />
+            <span className="user-name">SANDUN</span>
           </div>
+          <Button 
+            type="text" 
+            icon={<SettingOutlined />} 
+            className="settings-btn"
+          />
         </div>
 
         <Button 
-          type="text" 
+          type="default" 
           icon={<PlusOutlined />} 
           className="new-chat-btn"
-          onClick={handleNewSession}
+          onClick={handleNewChat}
           block
         >
           新建会话
-          <span className="shortcut">New</span>
         </Button>
 
         <div className="sessions-section">
-          <div className="section-title">
-            <HistoryOutlined />
-            <span>聊天记录</span>
-          </div>
-          
-          {sessions.length === 0 ? (
-            <div className="no-sessions">暂无记录</div>
-          ) : (
-            <List
-              className="sessions-list"
-              dataSource={sessions}
-              renderItem={(session) => (
-                <List.Item
-                  className={`session-item ${session.id === sessionId ? 'active' : ''}`}
-                  onClick={() => setSessionId(session.id)}
-                >
-                  <div className="session-content">
-                    <div className="session-title">{session.title}</div>
-                    {session.lastMessage && (
-                      <div className="session-preview">{session.lastMessage.substring(0, 30)}...</div>
-                    )}
-                  </div>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    className="delete-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSessions(sessions.filter(s => s.id !== session.id))
+          <div className="section-title">聊天记录</div>
+          <List
+            className="sessions-list"
+            dataSource={sessions}
+            renderItem={(session) => (
+              <List.Item
+                className={`session-item ${session.id === sessionId ? 'active' : ''}`}
+                onClick={() => {
+                  setSessionId(session.id)
+                  setShowWelcome(false)
+                }}
+              >
+                <div className="session-content">
+                  <div className="session-title">{session.title}</div>
+                  {session.lastMessage && (
+                    <div className="session-preview">{session.lastMessage}</div>
+                  )}
+                </div>
+                <div className="session-meta">
+                  <span className="session-time">{session.timestamp}</span>
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: 'delete',
+                          label: '删除',
+                          icon: <DeleteOutlined />,
+                          danger: true,
+                        },
+                      ],
                     }}
-                  />
-                </List.Item>
-              )}
-            />
-          )}
+                    trigger={['click']}
+                  >
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={<MoreOutlined />}
+                      className="session-more-btn"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Dropdown>
+                </div>
+              </List.Item>
+            )}
+          />
         </div>
 
-        <div className="sider-footer">
-          <Button type="text" icon={<UserOutlined />} size="small">
-            设置
-          </Button>
+        <div className="sidebar-footer">
+          <div className="current-project">
+            <div className="project-icon">📄</div>
+            <div className="project-info">
+              <div className="project-title">当前项目名称 PPT</div>
+              <div className="project-meta">项目ID: 000 时长</div>
+            </div>
+          </div>
         </div>
       </Sider>
 
       {/* Main Content */}
-      <Content className="chat-content">
-        {/* Top Bar */}
-        <div className="top-bar">
-          <div className="top-bar-left"></div>
-          <div className="top-bar-right">
-            <Button type="primary" ghost>
-              登录 / 注册
-            </Button>
-          </div>
-        </div>
-
-        {/* Messages Area */}
-        <div className="messages-container">
-          {messages.length === 0 ? (
-            renderEmptyState()
-          ) : (
-            <div className="messages-list">
-              {messages.map((msg) => (
-                <div 
-                  key={msg.id} 
-                  className={`message-item ${msg.role === 'user' ? 'user-message' : 'ai-message'}`}
-                >
-                  {msg.role !== 'user' && (
-                    <Avatar className="message-avatar" size={32}>
-                      AI
-                    </Avatar>
-                  )}
-                  <div className="message-content">
-                    <div className="message-text">{msg.content}</div>
-                  </div>
-                  {msg.role === 'user' && (
-                    <Avatar className="message-avatar" size={32} icon={<UserOutlined />} />
-                  )}
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+      <Layout className="chat-main">
+        <Content className="chat-content">
+          {/* Top Bar */}
+          <div className="top-bar">
+            <div className="top-bar-left"></div>
+            <div className="top-bar-right">
+              <Button type="default" className="auth-btn">
+                登录 / 注册
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Input Area */}
-        <div className="input-container">
-          <div className="input-wrapper">
-            <Upload
-              beforeUpload={handleFileUpload}
-              showUploadList={false}
-            >
-              <Button 
-                type="text" 
-                icon={<PaperClipOutlined />} 
-                className="attach-btn"
-              />
-            </Upload>
+          {/* Messages or Welcome */}
+          <div className="messages-container">
+            {showWelcome && messages.length === 0 ? (
+              <div className="welcome-screen">
+                <h1 className="welcome-title">
+                  {getGreeting()}，<br />
+                  有什么PPT需要我做吗？
+                </h1>
+                <p className="welcome-subtitle">AI生成精美PPT，可编辑的PPT</p>
+                
+                <div className="quick-actions">
+                  <Button 
+                    className="quick-action-btn"
+                    onClick={() => handleQuickAction('帮我做一个产品介绍PPT')}
+                  >
+                    Drivy: 品牌化
+                  </Button>
+                  <Button 
+                    className="quick-action-btn"
+                    onClick={() => handleQuickAction('北京5月份8天旅游攻略')}
+                  >
+                    北京5月份8天旅游攻略
+                  </Button>
+                  <Button 
+                    className="quick-action-btn"
+                    onClick={() => handleQuickAction('自己出版企业介绍')}
+                  >
+                    自己出版企业介绍
+                  </Button>
+                  <Button 
+                    className="quick-action-btn"
+                    onClick={() => handleQuickAction('汽车行业调研报告')}
+                  >
+                    汽车行业调研报告
+                  </Button>
+                </div>
 
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onPressEnter={(e) => {
-                if (!e.shiftKey) {
-                  e.preventDefault()
-                  handleSendMessage()
-                }
-              }}
-              placeholder="描述你的工作..."
-              className="message-input"
-              disabled={loading || !sessionId}
-              suffix={
-                <Button
-                  type="text"
-                  icon={<SendOutlined />}
-                  onClick={handleSendMessage}
-                  loading={loading}
-                  disabled={!inputMessage.trim() || !sessionId}
-                  className="send-btn"
+                <div className="welcome-footer">
+                  <span className="footer-link">生成专属</span>
+                </div>
+              </div>
+            ) : (
+              <div className="messages-list">
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`message-item ${msg.role}`}>
+                    <Avatar 
+                      size={32} 
+                      icon={msg.role === 'user' ? <UserOutlined /> : null}
+                      className="message-avatar"
+                    >
+                      {msg.role === 'assistant' ? 'AI' : null}
+                    </Avatar>
+                    <div className="message-content">
+                      <div className="message-text">{msg.content}</div>
+                    </div>
+                  </div>
+                ))}
+                {loading && (
+                  <div className="message-item assistant">
+                    <Avatar size={32} className="message-avatar">AI</Avatar>
+                    <div className="message-content">
+                      <div className="message-text typing">正在思考...</div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div className="input-area">
+            <div className="input-container">
+              <Upload
+                beforeUpload={handleFileUpload}
+                showUploadList={false}
+              >
+                <Button 
+                  type="text" 
+                  icon={<PaperClipOutlined />} 
+                  className="attach-btn"
                 />
-              }
-            />
+              </Upload>
+
+              <Input
+                className="message-input"
+                placeholder="描述你的主题..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onPressEnter={handleSendMessage}
+                disabled={loading}
+              />
+
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                className="send-btn"
+                onClick={handleSendMessage}
+                loading={loading}
+                disabled={!inputMessage.trim()}
+              />
+            </div>
           </div>
-          
-          <div className="input-footer">
-            <span className="footer-text">生成案例</span>
-          </div>
-        </div>
-      </Content>
+        </Content>
+      </Layout>
     </Layout>
   )
 }

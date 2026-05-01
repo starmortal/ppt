@@ -3,12 +3,17 @@ Session management API endpoints
 """
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 import logging
+import uuid
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Temporary in-memory storage
+_sessions_store: Dict[str, Any] = {}
 
 
 # Request/Response models
@@ -36,23 +41,24 @@ async def create_session(request: CreateSessionRequest):
     the initial state for the Strategist role.
     """
     try:
-        # TODO: Inject dependencies (session_manager)
-        # For now, return mock response
-        import uuid
-        from datetime import datetime
-        
         session_id = f"sess_{uuid.uuid4().hex[:16]}"
+        now = datetime.utcnow().isoformat()
         
-        return SessionResponse(
-            session_id=session_id,
-            user_id=request.user_id,
-            project_id=None,
-            current_role="strategist",
-            current_stage="init",
-            status="active",
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat()
-        )
+        session = {
+            "session_id": session_id,
+            "user_id": request.user_id,
+            "project_id": None,
+            "current_role": "strategist",
+            "current_stage": "init",
+            "status": "active",
+            "context": {},
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        _sessions_store[session_id] = session
+        
+        return SessionResponse(**session)
     except Exception as e:
         logger.error(f"Failed to create session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -67,22 +73,16 @@ async def get_session(session_id: str):
     role, stage, and associated project.
     """
     try:
-        # TODO: Implement with session_manager
-        from datetime import datetime
+        session = _sessions_store.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
         
-        return SessionResponse(
-            session_id=session_id,
-            user_id="user_123",
-            project_id="proj_abc",
-            current_role="strategist",
-            current_stage="strategy",
-            status="active",
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat()
-        )
+        return SessionResponse(**session)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get session: {e}")
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/{session_id}")
@@ -93,7 +93,8 @@ async def delete_session(session_id: str):
     Cleans up session data and marks it as completed.
     """
     try:
-        # TODO: Implement with session_manager
+        if session_id in _sessions_store:
+            del _sessions_store[session_id]
         return {"message": "Session deleted successfully"}
     except Exception as e:
         logger.error(f"Failed to delete session: {e}")
