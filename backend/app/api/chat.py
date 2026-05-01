@@ -77,7 +77,11 @@ def get_session_manager() -> SimpleSessionManager:
 
 def get_script_executor() -> ScriptExecutor:
     """Get script executor instance"""
-    return ScriptExecutor()
+    from ..core.config import settings
+    return ScriptExecutor(
+        scripts_base_path=settings.SCRIPTS_BASE_PATH,
+        projects_base_path=settings.PROJECTS_BASE_PATH
+    )
 
 
 def get_agent(

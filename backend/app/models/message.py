@@ -19,7 +19,7 @@ class Message(Base):
     role = Column(String(32), nullable=False)  # user, strategist, image_generator, executor
     content = Column(Text, nullable=False)
     
-    metadata = Column(JSON, default=dict)  # Additional data (actions, files, etc.)
+    message_metadata = Column(JSON, default=dict)  # Additional data (actions, files, etc.)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -30,6 +30,6 @@ class Message(Base):
             "session_id": self.session_id,
             "role": self.role,
             "content": self.content,
-            "metadata": self.metadata,
+            "metadata": self.message_metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

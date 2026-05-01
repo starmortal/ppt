@@ -33,7 +33,7 @@ class Project(Base):
     status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.INIT)
     file_path = Column(String(512), nullable=True)  # Storage path
     
-    metadata = Column(JSON, default=dict)  # Additional metadata
+    project_metadata = Column(JSON, default=dict)  # Additional metadata
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -47,7 +47,7 @@ class Project(Base):
             "format": self.format,
             "status": self.status.value if self.status else None,
             "file_path": self.file_path,
-            "metadata": self.metadata,
+            "metadata": self.project_metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

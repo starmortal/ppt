@@ -76,8 +76,8 @@ class Settings(BaseSettings):
     LOG_FILE: str = "logs/app.log"
     
     # Project Storage
-    PROJECTS_BASE_PATH: str = "../../projects"
-    SCRIPTS_BASE_PATH: str = "../../skills/ppt-master/scripts"
+    PROJECTS_BASE_PATH: str = "/app/projects"
+    SCRIPTS_BASE_PATH: str = "/app/skills/ppt-master/scripts"
     
     class Config:
         env_file = ".env"
