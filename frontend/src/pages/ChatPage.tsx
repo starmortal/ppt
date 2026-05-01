@@ -139,7 +139,7 @@ const ChatPage = () => {
 
     try {
       const hide = message.loading('正在上传文件...', 0)
-      const uploadResult = await fileAPI.upload(file, sessionId, 'source')
+      await fileAPI.upload(file, sessionId, 'source')
       hide()
       
       message.success('文件上传成功')
@@ -306,7 +306,6 @@ const ChatPage = () => {
         <div className="input-container">
           <div className="input-wrapper">
             <Upload
-              fileList={fileList}
               beforeUpload={handleFileUpload}
               showUploadList={false}
             >
