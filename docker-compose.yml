@@ -67,14 +67,39 @@ services:
       dockerfile: Dockerfile
     container_name: pptmaster-backend
     environment:
+      # Application
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-here-change-in-production}
+      DEBUG: "True"
+      
+      # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-pptmaster}:${POSTGRES_PASSWORD:-pptmaster_password}@postgres:5432/${POSTGRES_DB:-pptmaster}
+      
+      # Redis & Celery
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
+      
+      # MinIO
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: pptmaster
       MINIO_SECURE: "false"
+      
+      # LLM Configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compatible}
+      OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-}
+      OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-https://maas-coding-api.cn-huabei-1.xf-yun.com/v2}
+      OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-astron-code-latest}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4-turbo-preview}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-opus-20240229}
+      
+      # Image Generation
+      IMAGE_GEN_PROVIDER: ${IMAGE_GEN_PROVIDER:-openai}
+      STABILITY_API_KEY: ${STABILITY_API_KEY:-}
+      DALLE_MODEL: ${DALLE_MODEL:-dall-e-3}
     volumes:
       - ./backend:/app
       - ../../projects:/app/projects
@@ -99,13 +124,38 @@ services:
       dockerfile: Dockerfile
     container_name: pptmaster-celery-worker
     environment:
+      # Application
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-here-change-in-production}
+      DEBUG: "True"
+      
+      # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-pptmaster}:${POSTGRES_PASSWORD:-pptmaster_password}@postgres:5432/${POSTGRES_DB:-pptmaster}
+      
+      # Redis & Celery
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
+      
+      # MinIO
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: pptmaster
+      
+      # LLM Configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai_compatible}
+      OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-}
+      OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-https://maas-coding-api.cn-huabei-1.xf-yun.com/v2}
+      OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-astron-code-latest}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4-turbo-preview}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-opus-20240229}
+      
+      # Image Generation
+      IMAGE_GEN_PROVIDER: ${IMAGE_GEN_PROVIDER:-openai}
+      STABILITY_API_KEY: ${STABILITY_API_KEY:-}
+      DALLE_MODEL: ${DALLE_MODEL:-dall-e-3}
     volumes:
       - ./backend:/app
       - ../../projects:/app/projects
