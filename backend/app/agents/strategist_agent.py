@@ -82,7 +82,8 @@ class StrategistAgent(BaseAgent):
         if not session:
             raise ValueError(f"Session not found: {session_id}")
         
-        context = session.context
+        # Handle both dict and object formats
+        context = session.get("context", {}) if isinstance(session, dict) else session.context
         
         # Build conversation context
         conversation_context = self.build_conversation_context(session_id)
@@ -191,7 +192,8 @@ class StrategistAgent(BaseAgent):
         3. Save both files to project directory
         """
         session = self.session_manager.get_session(session_id)
-        project_id = session.project_id
+        # Handle both dict and object formats
+        project_id = session.get("project_id") if isinstance(session, dict) else session.project_id
         
         if not project_id:
             raise ValueError("No project linked to session")

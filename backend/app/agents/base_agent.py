@@ -61,8 +61,11 @@ class BaseAgent(ABC):
         
         context_parts = []
         for msg in messages:
-            role_label = msg.role.upper()
-            context_parts.append(f"{role_label}: {msg.content}")
+            # Handle both dict and object formats
+            role = msg.get("role") if isinstance(msg, dict) else msg.role
+            content = msg.get("content") if isinstance(msg, dict) else msg.content
+            role_label = role.upper()
+            context_parts.append(f"{role_label}: {content}")
         
         return "\n\n".join(context_parts)
     

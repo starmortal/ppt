@@ -177,10 +177,7 @@ const ChatPage = () => {
       {/* Left Sidebar */}
       <Sider width={280} className="chat-sidebar">
         <div className="sidebar-header">
-          <div className="user-info">
-            <Avatar size={40} icon={<UserOutlined />} className="user-avatar" />
-            <span className="user-name">SANDUN</span>
-          </div>
+          <div className="app-title">PPT Agent</div>
           <Button 
             type="text" 
             icon={<SettingOutlined />} 
@@ -245,16 +242,6 @@ const ChatPage = () => {
             )}
           />
         </div>
-
-        <div className="sidebar-footer">
-          <div className="current-project">
-            <div className="project-icon">📄</div>
-            <div className="project-info">
-              <div className="project-title">当前项目名称 PPT</div>
-              <div className="project-meta">项目ID: 000 时长</div>
-            </div>
-          </div>
-        </div>
       </Sider>
 
       {/* Main Content */}
@@ -285,51 +272,52 @@ const ChatPage = () => {
                     className="quick-action-btn"
                     onClick={() => handleQuickAction('帮我做一个产品介绍PPT')}
                   >
-                    Drivy: 品牌化
+                    产品介绍PPT
                   </Button>
                   <Button 
                     className="quick-action-btn"
                     onClick={() => handleQuickAction('北京5月份8天旅游攻略')}
                   >
-                    北京5月份8天旅游攻略
+                    旅游攻略PPT
                   </Button>
                   <Button 
                     className="quick-action-btn"
-                    onClick={() => handleQuickAction('自己出版企业介绍')}
+                    onClick={() => handleQuickAction('公司年度总结报告')}
                   >
-                    自己出版企业介绍
+                    年度总结报告
                   </Button>
                   <Button 
                     className="quick-action-btn"
-                    onClick={() => handleQuickAction('汽车行业调研报告')}
+                    onClick={() => handleQuickAction('市场调研分析报告')}
                   >
-                    汽车行业调研报告
+                    市场调研报告
                   </Button>
-                </div>
-
-                <div className="welcome-footer">
-                  <span className="footer-link">生成专属</span>
                 </div>
               </div>
             ) : (
               <div className="messages-list">
                 {messages.map((msg) => (
                   <div key={msg.id} className={`message-item ${msg.role}`}>
-                    <Avatar 
-                      size={32} 
-                      icon={msg.role === 'user' ? <UserOutlined /> : null}
-                      className="message-avatar"
-                    >
-                      {msg.role === 'assistant' ? 'AI' : null}
-                    </Avatar>
+                    {msg.role === 'assistant' && (
+                      <Avatar size={32} className="message-avatar ai-avatar">
+                        AI
+                      </Avatar>
+                    )}
                     <div className="message-content">
                       <div className="message-text">{msg.content}</div>
                     </div>
+                    {msg.role === 'user' && (
+                      <Avatar 
+                        size={32} 
+                        icon={<UserOutlined />}
+                        className="message-avatar user-avatar"
+                      />
+                    )}
                   </div>
                 ))}
                 {loading && (
                   <div className="message-item assistant">
-                    <Avatar size={32} className="message-avatar">AI</Avatar>
+                    <Avatar size={32} className="message-avatar ai-avatar">AI</Avatar>
                     <div className="message-content">
                       <div className="message-text typing">正在思考...</div>
                     </div>
